@@ -190,13 +190,14 @@ def process_image(input_file):
                 #save noise patch
                 #with mrcfile.new(noise_patch_path[:-4]+'_'+str(noise_patch_n)+'.mrc',overwrite=True) as noise_patch:
                      #noise_patch.set_data(arr)
-    print(len(noise_list))
-    print(len(noise_max))
-    print(len(x_l))
-    print(len(y_l))
+#     print(len(noise_list))
+#     print(len(noise_max))
+#     print(len(x_l))
+#     print(len(y_l))
     #in_50_indices = np.argsort(noise_max)[:20]
-    num=int(len(noise_max)/5)
-    if len(noise_max)>100: 
+    num=int(len(noise_max)/4)
+    
+    if 250>len(noise_max)>100: 
         #print('min_50_indices:',min_50_indices)
         for i in np.argsort(noise_max)[:num]:
             with mrcfile.new(noise_patch_path[:-4]+'_'+str(i)+'.mrc',overwrite=True) as noise_patch:
@@ -206,6 +207,9 @@ def process_image(input_file):
             cv2.rectangle(denoised_img2, (y_l[i],x_l[i]), (y_l[i]+box_size,x_l[i]+box_size), (0, 0, 255), 2)
             noise_patch_n+=1
         #save draw noise
+        with mrcfile.new(draw_noise_path,overwrite=True) as draw_noise:
+            draw_noise.set_data(denoised_img2)
+    elif len(noise_max)>=250:
         with mrcfile.new(draw_noise_path,overwrite=True) as draw_noise:
             draw_noise.set_data(denoised_img2)
     else:
@@ -220,8 +224,8 @@ def process_image(input_file):
         with mrcfile.new(draw_noise_path,overwrite=True) as draw_noise:
             draw_noise.set_data(denoised_img2)
 
-pool = multiprocessing.Pool(processes=36)
-pool.map(process_image, input_list)
+pool = multiprocessing.Pool(processes=1)
+pool.map(process_image, input_list[:10])
 
 # 关闭进程池
 pool.close()

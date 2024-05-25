@@ -11,7 +11,7 @@ from torch.nn.parallel import DataParallel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3" #要放全部
 
 from utils.data.loader import load_image
 from utils.image import downsample
@@ -155,9 +155,9 @@ def denoise_image(mic, models, lowpass=1, cutoff=0, gaus=None, inv_gaus=None, de
         mic = dn.lowpass(mic, lowpass)
 
     mic = torch.from_numpy(mic)
-    if use_cuda:
+    if use_cuda:  #要用哪張改這邊
         mic = mic.cuda()
-
+    
     # normalize and remove outliers
     mu = mic.mean()
     std = mic.std()
@@ -173,11 +173,13 @@ def denoise_image(mic, models, lowpass=1, cutoff=0, gaus=None, inv_gaus=None, de
     elif deconvolve:
         # estimate optimal filter and correct spatial correlation
         x = dn.correct_spatial_covariance(x, patch=deconv_patch)
-
+    #print(x.shape) torch.Size([4096, 4096])
+    
     # denoise
     mic = 0
-    for model in models:
+    for model in models:  
         mic += dn.denoise(model, x, patch_size=patch_size, padding=padding)
+        print('mic',mic.shape)
     mic /= len(models)
 
     # restore pixel scaling
@@ -186,7 +188,7 @@ def denoise_image(mic, models, lowpass=1, cutoff=0, gaus=None, inv_gaus=None, de
     else:
         # add back std. dev. and mean
         mic = std*mic + mu
-
+    #print(mic.shape) #torch.Size([4096, 4096])
     # back to numpy/cpu
     mic = mic.cpu().numpy()
 
@@ -299,7 +301,7 @@ def main(args):
             raise Exception('Unknown architecture: ' + arch)
 
         if use_cuda:
-            device_ids = [0, 1, 2,3]
+            device_ids = [ 1, 2,3]  #要用哪張改這邊
             model = DataParallel(model,device_ids=device_ids)
             model = model.cuda()
 
@@ -353,7 +355,7 @@ def main(args):
                 model.eval()
                 torch.save(model, path)
                 if use_cuda:
-                    device_ids = [0, 1, 2]
+                    device_ids = [ 1, 2,3] #要用哪張改這邊
                     model = DataParallel(model,device_ids=device_ids)
                     model.cuda()
                     
@@ -361,27 +363,35 @@ def main(args):
 
     else: # load the saved model(s)
         models = []
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        device_ids = [0, 1, 2]
+#         device = "cuda" if torch.cuda.is_available() else "cpu"
+#         device_ids = [1, 2,3] #要用哪張改這邊
         for arg in args.model:
             if arg == 'none':
                 print('# Warning: no denoising model will be used', file=sys.stderr)
             else:
                 print('# Loading model:', arg, file=sys.stderr)
             model = dn.load_model(arg)
-
             model.eval()
-            if use_cuda:
-                #model.cuda()
-                model = DataParallel(model,device_ids=device_ids)
-                model = model.to(device)
-                model = model.cuda()
+            #print(model)
+            if isinstance(model, torch.nn.DataParallel):
+                model = model.module.module.module.module.module.module.module.module.module.module
+                print(model)
+            if use_cuda:   
+                #model = DataParallel(model,device_ids=[ 1,2,3],output_device=[ 1,2,3]) #要用哪張改這邊
+                model = model.cuda() #方在默認的
+                
 
+            model_device = next(model.parameters()).device
+            if model_device.type == 'cuda':
+                print("模型在 CUDA 设备上:", model_device)
+            else:
+                print("aaa模型不在 CUDA 设备上")
+            
             models.append(model)
-
+   
     # using trained model
     # denoise the images
-
+    
     normalize = args.normalize
     if args.format_ == 'png' or args.format_ == 'jpg':
         # always normalize png and jpg format
@@ -454,7 +464,7 @@ def main(args):
         for path in args.micrographs[:10]: #pre數量
             name,_ = os.path.splitext(os.path.basename(path))
             mic = np.array(load_image(path), copy=False).astype(np.float32)
-    
+            #print("raw",mic.shape)
             # process and denoise the micrograph
             mic = denoise_image(mic, models, lowpass=lowpass, cutoff=cutoff, gaus=gaus
                                , inv_gaus=inv_gaus, deconvolve=deconvolve
@@ -462,6 +472,7 @@ def main(args):
                                , patch_size=ps, padding=padding, normalize=normalize
                                , use_cuda=use_cuda
                                )
+            #print("denoise",mic.shape)
             #print(mic.max(),mic.min())
             # write the micrograph
             if not args.output:

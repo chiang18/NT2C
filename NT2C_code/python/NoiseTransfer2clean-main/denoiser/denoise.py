@@ -57,13 +57,14 @@ def load_model(name):
 
 
 def denoise(model, x, patch_size=-1, padding=128):
-
+    #print(patch_size,padding) #800 128
     # check the patch plus padding size
     use_patch = False
     if patch_size > 0:
         s = patch_size + padding
+        #print(s)
         use_patch = (s < x.size(0)) or (s < x.size(1))
-
+        #print(use_patch)
     if use_patch:
         return denoise_patches(model, x, patch_size, padding=padding)
 
@@ -76,13 +77,15 @@ def denoise(model, x, patch_size=-1, padding=128):
 
 def denoise_patches(model, x, patch_size, padding=128):
     y = torch.zeros_like(x)
+    #print(x.shape) #torch.Size([4096, 4096])
     x = x.unsqueeze(0).unsqueeze(0)
-
+    #print(x.shape) #torch.Size([1, 1, 4096, 4096])
     with torch.no_grad():
         for i in range(0, x.size(2), patch_size):
             for j in range(0, x.size(3), patch_size):
                 # include padding extra pixels on either side
                 si = max(0, i - padding)
+                #print(si)
                 ei = min(x.size(2), i + patch_size + padding)
 
                 sj = max(0, j - padding)
@@ -90,7 +93,7 @@ def denoise_patches(model, x, patch_size, padding=128):
 
                 xij = x[:,:,si:ei,sj:ej]
                 yij = model(xij).squeeze() # denoise the patch
-
+                #print(yij.shape)
                 # match back without the padding
                 si = i - si
                 sj = j - sj

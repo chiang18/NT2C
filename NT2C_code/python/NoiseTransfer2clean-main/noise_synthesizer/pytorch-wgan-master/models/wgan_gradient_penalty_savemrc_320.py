@@ -150,7 +150,7 @@ class WGAN_GP(object):
         self.g_optimizer = optim.Adam(self.G.parameters(), lr=self.learning_rate, betas=(self.b1, self.b2))
 
         # Set the logger
-        self.logger = Logger("/home/m112040012/vscode/logs/") #./logs
+        self.logger = Logger("/home/m112040012/vscode/wgan/logs/") #./logs
         self.logger.writer.flush()
         self.number_of_images = 10 #10
 
@@ -166,12 +166,13 @@ class WGAN_GP(object):
             return Variable(arg)
 
     def check_cuda(self, cuda_flag=False):
-        print(cuda_flag)
+        #print(cuda_flag)
         if cuda_flag:
-            self.cuda_index = 0
+            device_ids = [ 1, 2, 3]
+            self.cuda_index = 1
             self.cuda = True
-            self.D = nn.DataParallel(self.D)  # Wrap the discriminator with DataParallel
-            self.G = nn.DataParallel(self.G)
+            self.D = nn.DataParallel(self.D,device_ids)  # Wrap the discriminator with DataParallel
+            self.G = nn.DataParallel(self.G,device_ids)
             self.D.cuda(self.cuda_index)
             self.G.cuda(self.cuda_index)
             #print("cuda index: {}".format(self.cuda_index))
@@ -402,33 +403,26 @@ class WGAN_GP(object):
               ##noise_out_0.set_data(noise_arr_0)
               print('{}/{}'.format(n,b*500+i))
             
-    def evaluate3(self, num, D_model_path, G_model_path,output):
-          n=num
-        #output_zip = os.path.join(output, 'gan_256.zip')
-        #with zipfile.ZipFile(output_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
-          for b in range(int(n/500)):
+    def evaluate_mrc(self, num, D_model_path, G_model_path,output):
+        n=num
+        for b in range(int(n/500)):
             batch_size=500
             self.load_model(D_model_path, G_model_path)
             z = self.get_torch_variable(torch.randn(batch_size, 100, 1, 1))
             samples = self.G(z)
-            print('samples:',samples.shape)
             samples = samples.mul(0.5).add(0.5)
             samples = samples.data.cpu()
-            for i in range(batch_size):                                           ##noise_out_0=mrcfile.new('/content/gdrive/MyDrive/NT2C/10077/SIM_EM77_5lzf_data/gan_noise_256/img_generatori_iter_{}_{}.mrc'.format(str(b),str(i)),overwrite=True)           
-              noise_arr_0=samples.data.cpu().numpy()[i]
-              #print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-              #print(output+'img_generatori_iter_{}_{}.mrc')
-              mrc_out = mrcfile.new(output+'img_generatori_iter_{}_{}.mrc'.format(str(b),str(i)), overwrite=True)
-              mrc_out.set_data(noise_arr_0)
-              #mrc_out.close()
-              #zipf.write('img_generatori_iter_{}_{}.mrc'.format(str(b),str(i)))
-              #os.remove('img_generatori_iter_{}_{}.mrc'.format(str(b),str(i)))  # 删除临时的MRC文件
-              #print(noise_arr_0.shape[0],noise_arr_0.shape[1])
-              #print(noise_arr_0)
-              ##noise_out_0.set_data(noise_arr_0)
-              print('{}/{}'.format(n,b*500+i))
+            for i in range(batch_size):                                                    
+                noise_arr_0=samples.data.cpu().numpy()[i].squeeze() #mrc
+                noise_arr_0 = (noise_arr_0*255).astype(np.uint8)
+                cv2.imwrite(output+'img_generatori_iter_{}_{}.jpg'.format(str(b),str(i)), noise_arr_0)
+                print('{}/{}'.format(n,b*500+i))
                 
-    def evaluate4(self, num, D_model_path, G_model_path,output):
+#                 mrc_out = mrcfile.new(output+'img_generatori_iter_{}_{}.mrc'.format(str(b),str(i)), overwrite=True)
+#                 mrc_out.set_data(noise_arr_0)
+#                 print('{}/{}'.format(n,b*500+i))
+                
+    def evaluate_jpg(self, num, D_model_path, G_model_path,output):
         n=num
         for b in range(int(n/500)):
             batch_size=500
@@ -440,12 +434,7 @@ class WGAN_GP(object):
             samples = samples.data.cpu()
             for i in range(batch_size):                                                     
                 noise_arr_0=samples.data.cpu().numpy()[i].squeeze()
-                #print(noise_arr_0)
                 noise_arr_0 = (noise_arr_0*255).astype(np.uint8)
-                #print(noise_arr_0)
-                
-                #print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                #print(output+'img_generatori_iter_{}_{}.mrc')
                 cv2.imwrite(output+'img_generatori_iter_{}_{}.jpg'.format(str(b),str(i)), noise_arr_0)
                 print('{}/{}'.format(n,b*500+i))
 
@@ -501,8 +490,8 @@ class WGAN_GP(object):
         return x.data.cpu().numpy()
 
     def save_model(self):
-        torch.save(self.G.state_dict(), '/home/m112040012/vscode/wgan/generator.pkl')
-        torch.save(self.D.state_dict(), '/home/m112040012/vscode/wgan/discriminator.pkl')
+        torch.save(self.G.state_dict(), '/home/m112040012/vscode/wgan/test_jpg/model/generator.pkl')
+        torch.save(self.D.state_dict(), '/home/m112040012/vscode/wgan/test_jpg/model/discriminator.pkl')
         print('Models save to ./generator.pkl & ./discriminator.pkl ')
 
     def load_model(self, D_model_filename, G_model_filename):

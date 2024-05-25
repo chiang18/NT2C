@@ -1,0 +1,18 @@
+name: Conda Upload
+
+on:
+  release:
+    types: [published]
+    
+jobs:
+
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1 #may want to change to v2
+    - name: publish-to-conda
+      uses: darnellgranberry/conda-package-publish-action@master
+      with:
+        subDir: 'conda-build'
+        AnacondaToken: ${{ secrets.CONDAAPITOKEN }}

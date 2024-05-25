@@ -64,6 +64,7 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, index):
         img = load_image_jpg(self.files[index % len(self.files)]) #jpg改這
+        #img = load_image(self.files[index % len(self.files)]) #mrc改這
         img = self.transform(img)
         return img,index
         #return {"img": img,"i":index}

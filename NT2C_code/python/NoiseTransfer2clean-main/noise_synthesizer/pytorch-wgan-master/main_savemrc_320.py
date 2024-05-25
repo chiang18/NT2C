@@ -33,7 +33,7 @@ def main(args):
     # start evaluating on test data
     else:
         #model.evaluate(test_loader, args.load_D, args.load_G)
-        model.evaluate4(args.noise_num, args.load_D, args.load_G,args.o)
+        model.evaluate_mrc(args.noise_num, args.load_D, args.load_G,args.o)
         # for i in range(50):
         #    model.generate_latent_walk(i)
 

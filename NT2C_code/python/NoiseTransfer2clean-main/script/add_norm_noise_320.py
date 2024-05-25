@@ -146,8 +146,8 @@ def add_noise(clean_img):
     fit_noisy_out=mrcfile.new(noisy_gen_dir+clean_img,overwrite=True)
     fit_noisy_out.set_data(noisy_gen.astype(np.float32))
 
-pool = multiprocessing.Pool(processes=12)
-pool.map(add_noise, clean_list)
+pool = multiprocessing.Pool(processes=36)
+pool.map(add_noise, clean_list[:])
 
 # 关闭进程池
 pool.close()
